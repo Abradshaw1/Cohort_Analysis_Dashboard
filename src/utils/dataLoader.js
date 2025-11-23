@@ -1,5 +1,5 @@
 export async function loadFraminghamData() {
-  const response = await fetch(`${import.meta.env.BASE_URL}data/framingham.csv`);
+  const response = await fetch('./data/framingham.csv');
   const text = await response.text();
 
   // Handle different line endings: \r\n (Windows), \n (Unix), \r (Old Mac)
