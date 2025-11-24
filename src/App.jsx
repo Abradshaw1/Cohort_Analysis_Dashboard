@@ -23,11 +23,10 @@ export default function App() {
       setData(loadedData);
       setMetadata(meta);
 
-      // Use ALL features except TenYearCHD (matches Python implementation)
-      const allFeatures = ['male', 'age', 'education', 'currentSmoker', 'cigsPerDay',
-                           'BPMeds', 'prevalentStroke', 'prevalentHyp', 'diabetes',
-                           'totChol', 'sysBP', 'diaBP', 'BMI', 'heartRate', 'glucose'];
-      const pcaResult = computePCA(loadedData, allFeatures);
+      // Use only continuous features for PCA (no categorical variables)
+      const continuousFeatures = ['age', 'cigsPerDay', 'totChol', 'sysBP', 'diaBP',
+                                  'BMI', 'heartRate', 'glucose'];
+      const pcaResult = computePCA(loadedData, continuousFeatures);
       setProjection(pcaResult.projection);
       setValidIndices(pcaResult.validIndices);
       setPcaInfo({
