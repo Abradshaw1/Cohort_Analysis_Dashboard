@@ -23,8 +23,11 @@ export default function App() {
       setData(loadedData);
       setMetadata(meta);
 
-      const numericFeatures = ['age', 'totChol', 'sysBP', 'diaBP', 'BMI', 'heartRate', 'glucose', 'cigsPerDay'];
-      const pcaResult = computePCA(loadedData, numericFeatures);
+      // Use ALL features except TenYearCHD (matches Python implementation)
+      const allFeatures = ['male', 'age', 'education', 'currentSmoker', 'cigsPerDay',
+                           'BPMeds', 'prevalentStroke', 'prevalentHyp', 'diabetes',
+                           'totChol', 'sysBP', 'diaBP', 'BMI', 'heartRate', 'glucose'];
+      const pcaResult = computePCA(loadedData, allFeatures);
       setProjection(pcaResult.projection);
       setValidIndices(pcaResult.validIndices);
       setPcaInfo({

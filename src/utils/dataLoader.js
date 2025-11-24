@@ -66,6 +66,9 @@ export function computePCA(data, features) {
       : sorted[mid];
   });
 
+  console.log('Computing PCA with features:', features);
+  console.log('Medians for imputation:', medians);
+
   // 2) Build matrix with median imputation
   const matrix = [];
   const validIndices = [];
@@ -92,6 +95,8 @@ export function computePCA(data, features) {
   if (matrix.length === 0) {
     return { projection: [], validIndices: [] };
   }
+
+  console.log(`Total rows: ${n}, Rows after median imputation: ${matrix.length}`);
 
   // 3) Standardize (same as StandardScaler)
   const means = features.map((_, j) => {
@@ -134,6 +139,8 @@ export function computePCA(data, features) {
   const totalVar = eigenvalues.reduce((a, b) => a + b, 0);
   const varExplained1 = (eigenvalues[0] / totalVar) * 100;
   const varExplained2 = (eigenvalues[1] / totalVar) * 100;
+
+  console.log(`PCA: PC1 explains ${varExplained1.toFixed(1)}%, PC2 explains ${varExplained2.toFixed(1)}%`);
 
   return {
     projection,
