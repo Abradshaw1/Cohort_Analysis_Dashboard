@@ -118,23 +118,18 @@ export function computePCA(data, features) {
   // 4) Run PCA with ml-pca library
   const pca = new PCA(normalized, { center: false, scale: false });
 
-  const eigenvectorsMatrix = pca.getEigenvectors();
   const eigenvalues = pca.getEigenvalues();
 
-  // Get eigenvectors as columns from the matrix
-  const pc1 = [];
-  const pc2 = [];
-  for (let i = 0; i < m; i++) {
-    pc1.push(eigenvectorsMatrix.get(i, 0));
-    pc2.push(eigenvectorsMatrix.get(i, 1));
-  }
+  // 5) Project onto PC1, PC2 using predict method (gets first 2 components)
+  const projectionMatrix = pca.predict(normalized, { nComponents: 2 });
 
-  // 5) Project onto PC1, PC2
-  const projection = normalized.map(row => {
-    const x = row.reduce((sum, v, i) => sum + v * pc1[i], 0);
-    const y = row.reduce((sum, v, i) => sum + v * pc2[i], 0);
-    return { x, y };
-  });
+  const projection = [];
+  for (let i = 0; i < projectionMatrix.rows; i++) {
+    projection.push({
+      x: projectionMatrix.get(i, 0),
+      y: projectionMatrix.get(i, 1)
+    });
+  }
 
   const totalVar = eigenvalues.reduce((a, b) => a + b, 0);
   const varExplained1 = (eigenvalues[0] / totalVar) * 100;
