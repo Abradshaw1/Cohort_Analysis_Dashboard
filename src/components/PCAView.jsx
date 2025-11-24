@@ -21,7 +21,7 @@ export default function PCAView({
 
     const width = 500;
     const height = 500;
-    const margin = { top: 40, right: 40, bottom: 50, left: 50 };
+    const margin = { top: 80, right: 40, bottom: 50, left: 50 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -147,7 +147,7 @@ export default function PCAView({
         .attr('x', margin.left)
         .attr('y', 32)
         .attr('width', innerWidth)
-        .attr('height', 30);
+        .attr('height', 45);
 
       foreignObj.append('xhtml:div')
         .style('font-size', '10px')
@@ -161,7 +161,7 @@ export default function PCAView({
     if (colorFeature && metadata[colorFeature]) {
       const meta = metadata[colorFeature];
       const legendX = width - 130;
-      const legendY = 70;
+      const legendY = 85;
 
       const legendTitle = svg.append('text')
         .attr('x', legendX)
