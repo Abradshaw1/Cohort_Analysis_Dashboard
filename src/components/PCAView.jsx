@@ -143,20 +143,25 @@ export default function PCAView({
       .text('PCA Projection');
 
     if (pcaInfo?.features) {
-      svg.append('text')
-        .attr('x', width / 2)
-        .attr('y', 38)
-        .attr('text-anchor', 'middle')
-        .style('font-size', '11px')
-        .style('fill', '#666')
-        .text(`Projecting: ${pcaInfo.features.join(', ')}`);
+      const foreignObj = svg.append('foreignObject')
+        .attr('x', margin.left)
+        .attr('y', 32)
+        .attr('width', innerWidth)
+        .attr('height', 30);
+
+      foreignObj.append('xhtml:div')
+        .style('font-size', '10px')
+        .style('color', '#666')
+        .style('text-align', 'center')
+        .style('line-height', '1.3')
+        .html(`<strong>Features:</strong> ${pcaInfo.features.join(', ')}`);
     }
 
     // Add legend for color encoding (top right, below subtitle)
     if (colorFeature && metadata[colorFeature]) {
       const meta = metadata[colorFeature];
       const legendX = width - 130;
-      const legendY = 55;
+      const legendY = 70;
 
       const legendTitle = svg.append('text')
         .attr('x', legendX)
