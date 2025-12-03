@@ -143,10 +143,27 @@ body {
   padding-bottom: 0;
 }
 
+.panel-center-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .panel-center {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.panel-center-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.panel-center-bottom-left,
+.panel-center-bottom-right {
+  min-height: 450px;
 }
 
 .panel-right {

@@ -4,6 +4,7 @@ import FeatureDistribution from './components/FeatureDistribution';
 import PCAView from './components/PCAView';
 import SubgroupSummary from './components/SubgroupSummary';
 import SubgroupComparison from './components/SubgroupComparison';
+import ScatterComparison from './components/ScatterComparison';
 import './App.css';
 
 export default function App() {
@@ -190,19 +191,49 @@ export default function App() {
           </div>
         </div>
 
-        <div className="panel panel-center">
-          <PCAView
-            data={data}
-            projection={projection}
-            validIndices={validIndices}
-            colorFeature={colorFeature}
-            metadata={metadata}
-            selectedIndices={selectedIndices}
-            onBrush={handleBrush}
-            pcaInfo={pcaInfo}
-            clusteringMethod={clusteringMethod}
-            isComputing={isComputing}
-          />
+        <div className="panel-center-wrapper">
+          <div className="panel panel-center">
+            <PCAView
+              data={data}
+              projection={projection}
+              validIndices={validIndices}
+              colorFeature={colorFeature}
+              metadata={metadata}
+              selectedIndices={selectedIndices}
+              onBrush={handleBrush}
+              pcaInfo={pcaInfo}
+              clusteringMethod={clusteringMethod}
+              isComputing={isComputing}
+            />
+          </div>
+
+          <div className="panel-center-bottom">
+            <div className="panel-center-bottom-left">
+              <ScatterComparison
+                data={data}
+                selectedIndices={selectedIndices}
+                pinnedIndices={pinnedIndices}
+                metadata={metadata}
+              />
+            </div>
+            <div className="panel-center-bottom-right">
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                padding: '20px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                fontSize: '18px',
+                fontWeight: '500',
+                color: '#888'
+              }}>
+                Coming Soon
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="panel panel-right">

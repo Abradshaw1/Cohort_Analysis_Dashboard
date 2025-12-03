@@ -7,7 +7,7 @@ export default function SubgroupSummary({ data, selectedIndices, metadata }) {
         padding: '20px',
         backgroundColor: '#f8f9fa',
         borderRadius: '8px',
-        height: '200px',
+        minHeight: '280px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -38,8 +38,7 @@ export default function SubgroupSummary({ data, selectedIndices, metadata }) {
       padding: '20px',
       backgroundColor: '#f8f9fa',
       borderRadius: '8px',
-      height: '200px',
-      overflowY: 'auto'
+      minHeight: '280px'
     }}>
       <h3 style={{ marginTop: 0, marginBottom: '15px', fontSize: '16px', fontWeight: 'bold' }}>
         Subgroup Summary
