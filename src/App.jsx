@@ -116,7 +116,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="header-content">
-          <h1>"Some Fun Name": Cohort Analysis Dashboard</h1>
+          <h1>Framingham Heart Study: Cohort Analysis Dashboard</h1>
           <p>Interactive multi-view exploration of cardiovascular risk factors</p>
         </div>
       </header>
