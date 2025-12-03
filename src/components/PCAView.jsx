@@ -52,12 +52,24 @@ export default function PCAView({
     const isCategorical =
       meta && (meta.type === 'categorical' || meta.type === 'ordinal');
 
-    // only build a d3 color scale for categorical features
+    // build color scale based on feature type
     let colorScale = null;
+    let colorDomain = null;
     if (isCategorical) {
       colorScale = d3.scaleOrdinal()
         .domain(meta.domain)
         .range(['#e74c3c', '#3498db', '#2ecc71', '#f39c12']);
+    } else if (colorFeature && meta) {
+      // continuous feature - use green gradient
+      const values = data
+        .map(d => d[colorFeature])
+        .filter(v => v != null && !Number.isNaN(v));
+
+      if (values.length > 0) {
+        colorDomain = d3.extent(values);
+        colorScale = d3.scaleSequential(d3.interpolateGreens)
+          .domain(colorDomain);
+      }
     }
 
     const points = projection.map((p, i) => ({
@@ -77,17 +89,20 @@ export default function PCAView({
       .attr('cy', d => y(d.y))
       .attr('r', d => selectedSet.has(d.dataIndex) ? 4 : 3)
       .attr('fill', d => {
-        // continuous or no color feature → all green
-        if (!isCategorical) {
+        const v = d.colorValue;
+
+        // treat missing or bad values as default green
+        if (v === 'default' || v == null || Number.isNaN(v)) {
           return '#2ecc71';
         }
 
-        // categorical case → use scale for valid values
-        const v = d.colorValue;
-        if (v === 'default' || v == null) {
-          return '#2ecc71';
+        // if we have a color scale, use it
+        if (colorScale) {
+          return colorScale(v);
         }
-        return colorScale(v);
+
+        // fallback to default green
+        return '#2ecc71';
       })
       .attr('opacity', d =>
         selectedIndices.length === 0 ? 0.6 :
@@ -184,8 +199,8 @@ export default function PCAView({
         .html(`<strong>Features:</strong> ${pcaInfo.features.join(', ')}`);
     }
 
-    // legend only for categorical features
-    if (colorFeature && meta && isCategorical) {
+    // legend for categorical or continuous features
+    if (colorFeature && meta && colorScale) {
       const legendX = width - 130;
       const legendY = 85;
 
@@ -196,30 +211,81 @@ export default function PCAView({
         .style('font-weight', 'bold')
         .text(`Color: ${meta.label}`);
 
-      const titleNode = legendTitle.node();
-      const titleWidth = titleNode ? titleNode.getBBox().width : 120;
+      if (isCategorical) {
+        // categorical legend
+        const titleNode = legendTitle.node();
+        const titleWidth = titleNode ? titleNode.getBBox().width : 120;
 
-      const legend = svg.append('g')
-        .attr('transform', `translate(${legendX}, ${legendY + 8})`);
+        const legend = svg.append('g')
+          .attr('transform', `translate(${legendX}, ${legendY + 8})`);
 
-      meta.domain.forEach((value, i) => {
-        const labelText = meta.labels ? meta.labels[value] : value;
+        meta.domain.forEach((value, i) => {
+          const labelText = meta.labels ? meta.labels[value] : value;
 
-        const textElem = legend.append('text')
-          .attr('x', titleWidth)
-          .attr('y', i * 16 + 4)
-          .attr('text-anchor', 'end')
+          const textElem = legend.append('text')
+            .attr('x', titleWidth)
+            .attr('y', i * 16 + 4)
+            .attr('text-anchor', 'end')
+            .style('font-size', '10px')
+            .text(labelText);
+
+          const textWidth = textElem.node().getBBox().width;
+
+          legend.append('circle')
+            .attr('cx', titleWidth - textWidth - 10)
+            .attr('cy', i * 16)
+            .attr('r', 4)
+            .attr('fill', colorScale(value));
+        });
+      } else if (colorDomain) {
+        // continuous legend with gradient
+        const gradientHeight = 80;
+        const gradientWidth = 15;
+        const legend = svg.append('g')
+          .attr('transform', `translate(${legendX}, ${legendY + 10})`);
+
+        // create gradient definition
+        const defs = svg.append('defs');
+        const linearGradient = defs.append('linearGradient')
+          .attr('id', 'legend-gradient')
+          .attr('x1', '0%')
+          .attr('y1', '100%')
+          .attr('x2', '0%')
+          .attr('y2', '0%');
+
+        linearGradient.selectAll('stop')
+          .data([
+            { offset: '0%', color: colorScale(colorDomain[0]) },
+            { offset: '50%', color: colorScale((colorDomain[0] + colorDomain[1]) / 2) },
+            { offset: '100%', color: colorScale(colorDomain[1]) }
+          ])
+          .join('stop')
+          .attr('offset', d => d.offset)
+          .attr('stop-color', d => d.color);
+
+        // draw gradient rectangle
+        legend.append('rect')
+          .attr('width', gradientWidth)
+          .attr('height', gradientHeight)
+          .style('fill', 'url(#legend-gradient)')
+          .style('stroke', '#ccc')
+          .style('stroke-width', 1);
+
+        // add labels
+        legend.append('text')
+          .attr('x', gradientWidth + 5)
+          .attr('y', 0)
+          .attr('dy', '0.3em')
           .style('font-size', '10px')
-          .text(labelText);
+          .text(colorDomain[1].toFixed(1));
 
-        const textWidth = textElem.node().getBBox().width;
-
-        legend.append('circle')
-          .attr('cx', titleWidth - textWidth - 10)
-          .attr('cy', i * 16)
-          .attr('r', 4)
-          .attr('fill', colorScale(value));
-      });
+        legend.append('text')
+          .attr('x', gradientWidth + 5)
+          .attr('y', gradientHeight)
+          .attr('dy', '0.3em')
+          .style('font-size', '10px')
+          .text(colorDomain[0].toFixed(1));
+      }
     }
 
   }, [

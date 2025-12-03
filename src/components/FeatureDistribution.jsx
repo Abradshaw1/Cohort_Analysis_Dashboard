@@ -99,6 +99,10 @@ export default function FeatureDistribution({
         .domain([0, d3.max(bins, d => d.length)])
         .range([innerHeight, 0]);
 
+      // green gradient color scale based on bin position
+      const colorScale = d3.scaleSequential(d3.interpolateGreens)
+        .domain([min, max]);
+
       const brush = d3.brushX()
         .extent([[0, 0], [innerWidth, innerHeight]])
         .on('end', (event) => {
@@ -124,7 +128,7 @@ export default function FeatureDistribution({
         .attr('y', d => y(d.length))
         .attr('width', d => Math.max(0, x(d.x1) - x(d.x0) - 1))
         .attr('height', d => innerHeight - y(d.length))
-        .attr('fill', '#4a90e2')
+        .attr('fill', d => colorScale((d.x0 + d.x1) / 2))
         .attr('stroke', '#333')
         .attr('stroke-width', 0.5);
 
