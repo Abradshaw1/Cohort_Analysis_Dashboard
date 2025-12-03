@@ -5,6 +5,7 @@ import PCAView from './components/PCAView';
 import SubgroupSummary from './components/SubgroupSummary';
 import SubgroupComparison from './components/SubgroupComparison';
 import ScatterComparison from './components/ScatterComparison';
+import PersonalRiskCalculator from './components/PersonalRiskCalculator';
 import './App.css';
 
 export default function App() {
@@ -217,21 +218,10 @@ export default function App() {
               />
             </div>
             <div className="panel-center-bottom-right">
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                padding: '20px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                fontSize: '18px',
-                fontWeight: '500',
-                color: '#888'
-              }}>
-                Coming Soon
-              </div>
+              <PersonalRiskCalculator
+                data={data}
+                metadata={metadata}
+              />
             </div>
           </div>
         </div>
