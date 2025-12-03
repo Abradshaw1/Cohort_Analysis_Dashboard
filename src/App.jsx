@@ -17,6 +17,7 @@ export default function App() {
   const [colorFeature, setColorFeature] = useState('TenYearCHD');
   const [clusteringMethod, setClusteringMethod] = useState('PCA');
   const [isComputing, setIsComputing] = useState(false);
+  const [computeError, setComputeError] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -45,30 +46,36 @@ export default function App() {
 
     const computeProjection = async () => {
       setIsComputing(true);
-      setSelectedIndices([]); // Clear selection when switching methods
+      setSelectedIndices([]);
 
       const continuousFeatures = ['age', 'cigsPerDay', 'totChol', 'sysBP', 'diaBP',
                                   'BMI', 'heartRate', 'glucose'];
 
-      // Use setTimeout to allow loading indicator to appear
       setTimeout(() => {
-        if (clusteringMethod === 'PCA') {
-          const pcaResult = computePCA(data, continuousFeatures);
-          setProjection(pcaResult.projection);
-          setValidIndices(pcaResult.validIndices);
-          setPcaInfo({
-            varExplained: pcaResult.varExplained,
-            features: pcaResult.features
-          });
-        } else if (clusteringMethod === 'UMAP') {
-          const umapResult = computeUMAP(data, continuousFeatures);
-          setProjection(umapResult.projection);
-          setValidIndices(umapResult.validIndices);
-          setPcaInfo({
-            features: umapResult.features
-          });
+        try {
+          setComputeError(null);
+          if (clusteringMethod === 'PCA') {
+            const pcaResult = computePCA(data, continuousFeatures);
+            setProjection(pcaResult.projection);
+            setValidIndices(pcaResult.validIndices);
+            setPcaInfo({
+              varExplained: pcaResult.varExplained,
+              features: pcaResult.features
+            });
+          } else if (clusteringMethod === 'UMAP') {
+            const umapResult = computeUMAP(data, continuousFeatures);
+            setProjection(umapResult.projection);
+            setValidIndices(umapResult.validIndices);
+            setPcaInfo({
+              features: umapResult.features
+            });
+          }
+        } catch (error) {
+          console.error(`Error computing ${clusteringMethod}:`, error);
+          setComputeError(`Failed to compute ${clusteringMethod}: ${error.message}`);
+        } finally {
+          setIsComputing(false);
         }
-        setIsComputing(false);
       }, 50);
     };
 
@@ -128,6 +135,11 @@ export default function App() {
             <option value="PCA">PCA</option>
             <option value="UMAP">UMAP</option>
           </select>
+          {computeError && (
+            <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
+              {computeError}
+            </div>
+          )}
         </div>
         <div className="control-group">
           <label>Color by:</label>

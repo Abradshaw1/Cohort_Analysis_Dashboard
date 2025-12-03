@@ -166,26 +166,33 @@ export function computeUMAP(data, features) {
 
   console.log(`Total rows: ${data.length}, Rows after preprocessing: ${normalized.length}`);
 
-  const umap = new UMAP({
-    nComponents: 2,
-    nEpochs: 400,
-    nNeighbors: 15,
-    minDist: 0.1,
-    spread: 1.0
-  });
+  try {
+    const umap = new UMAP({
+      nComponents: 2,
+      nEpochs: 200,
+      nNeighbors: 15,
+      minDist: 0.1,
+      spread: 1.0
+    });
 
-  const embedding = umap.fit(normalized);
+    console.log('Starting UMAP fit...');
+    const embedding = umap.fit(normalized);
+    console.log('UMAP fit completed, formatting results...');
 
-  const projection = embedding.map(point => ({
-    x: point[0],
-    y: point[1]
-  }));
+    const projection = embedding.map(point => ({
+      x: point[0],
+      y: point[1]
+    }));
 
-  console.log('UMAP: Completed optimization');
+    console.log('UMAP: Completed optimization', projection.length, 'points');
 
-  return {
-    projection,
-    validIndices,
-    features
-  };
+    return {
+      projection,
+      validIndices,
+      features
+    };
+  } catch (error) {
+    console.error('UMAP computation failed:', error);
+    throw error;
+  }
 }
