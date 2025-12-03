@@ -49,7 +49,8 @@ export function getFeatureMetadata() {
   };
 }
 
-export function computePCA(data, features) {
+// Helper function to preprocess data for both PCA and t-SNE
+function preprocessData(data, features) {
   const n = data.length;
   const m = features.length;
 
@@ -65,9 +66,6 @@ export function computePCA(data, features) {
       ? (sorted[mid - 1] + sorted[mid]) / 2
       : sorted[mid];
   });
-
-  console.log('Computing PCA with features:', features);
-  console.log('Medians for imputation:', medians);
 
   // 2) Build matrix with median imputation
   const matrix = [];
@@ -93,10 +91,8 @@ export function computePCA(data, features) {
   }
 
   if (matrix.length === 0) {
-    return { projection: [], validIndices: [] };
+    return { matrix: [], validIndices: [], normalized: [] };
   }
-
-  console.log(`Total rows: ${n}, Rows after median imputation: ${matrix.length}`);
 
   // 3) Standardize (same as StandardScaler)
   const means = features.map((_, j) => {
@@ -115,12 +111,25 @@ export function computePCA(data, features) {
     row.map((val, j) => (val - means[j]) / stds[j])
   );
 
-  // 4) Run PCA with ml-pca library
-  const pca = new PCA(normalized, { center: false, scale: false });
+  return { matrix, validIndices, normalized };
+}
 
+export function computePCA(data, features) {
+  console.log('Computing PCA with features:', features);
+
+  const { validIndices, normalized } = preprocessData(data, features);
+
+  if (normalized.length === 0) {
+    return { projection: [], validIndices: [] };
+  }
+
+  console.log(`Total rows: ${data.length}, Rows after preprocessing: ${normalized.length}`);
+
+  // Run PCA with ml-pca library
+  const pca = new PCA(normalized, { center: false, scale: false });
   const eigenvalues = pca.getEigenvalues();
 
-  // 5) Project onto PC1, PC2 using predict method (gets first 2 components)
+  // Project onto PC1, PC2
   const projectionMatrix = pca.predict(normalized, { nComponents: 2 });
 
   const projection = [];
@@ -141,6 +150,204 @@ export function computePCA(data, features) {
     projection,
     validIndices,
     varExplained: [varExplained1, varExplained2],
+    features
+  };
+}
+
+// t-SNE implementation
+export function computeTSNE(data, features) {
+  console.log('Computing t-SNE with features:', features);
+
+  const { validIndices, normalized } = preprocessData(data, features);
+
+  if (normalized.length === 0) {
+    return { projection: [], validIndices: [] };
+  }
+
+  console.log(`Total rows: ${data.length}, Rows after preprocessing: ${normalized.length}`);
+
+  const n = normalized.length;
+  const perplexity = Math.min(30, Math.floor(n / 3));
+  const learningRate = 200;
+  const iterations = 1000;
+
+  // Compute pairwise distances
+  const distances = new Array(n);
+  for (let i = 0; i < n; i++) {
+    distances[i] = new Array(n);
+    for (let j = 0; j < n; j++) {
+      if (i === j) {
+        distances[i][j] = 0;
+        continue;
+      }
+      let sum = 0;
+      for (let k = 0; k < normalized[i].length; k++) {
+        const diff = normalized[i][k] - normalized[j][k];
+        sum += diff * diff;
+      }
+      distances[i][j] = sum;
+    }
+  }
+
+  // Compute P matrix (high-dimensional affinities)
+  const P = new Array(n);
+  for (let i = 0; i < n; i++) {
+    P[i] = new Array(n).fill(0);
+
+    // Binary search for sigma
+    let beta = 1.0;
+    let betaMin = -Infinity;
+    let betaMax = Infinity;
+    const logU = Math.log(perplexity);
+
+    for (let tries = 0; tries < 50; tries++) {
+      let sumP = 0;
+      let sumDp = 0;
+
+      for (let j = 0; j < n; j++) {
+        if (i !== j) {
+          const pji = Math.exp(-distances[i][j] * beta);
+          P[i][j] = pji;
+          sumP += pji;
+          sumDp += distances[i][j] * pji;
+        }
+      }
+
+      if (sumP === 0) sumP = 1e-10;
+      const H = Math.log(sumP) + beta * sumDp / sumP;
+      const Hdiff = H - logU;
+
+      if (Math.abs(Hdiff) < 1e-5) break;
+
+      if (Hdiff > 0) {
+        betaMin = beta;
+        beta = betaMax === Infinity ? beta * 2 : (beta + betaMax) / 2;
+      } else {
+        betaMax = beta;
+        beta = betaMin === -Infinity ? beta / 2 : (beta + betaMin) / 2;
+      }
+    }
+
+    // Normalize
+    let sumP = 0;
+    for (let j = 0; j < n; j++) {
+      sumP += P[i][j];
+    }
+    for (let j = 0; j < n; j++) {
+      P[i][j] = Math.max(P[i][j] / sumP, 1e-100);
+    }
+  }
+
+  // Symmetrize P
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const pij = (P[i][j] + P[j][i]) / (2 * n);
+      P[i][j] = pij;
+      P[j][i] = pij;
+    }
+  }
+
+  // Initialize solution randomly
+  const Y = new Array(n);
+  for (let i = 0; i < n; i++) {
+    Y[i] = [(Math.random() - 0.5) * 0.0001, (Math.random() - 0.5) * 0.0001];
+  }
+
+  const gains = new Array(n);
+  const iY = new Array(n);
+  for (let i = 0; i < n; i++) {
+    gains[i] = [1, 1];
+    iY[i] = [0, 0];
+  }
+
+  // Run gradient descent
+  for (let iter = 0; iter < iterations; iter++) {
+    // Compute Q matrix (low-dimensional affinities)
+    const Q = new Array(n);
+    let sumQ = 0;
+
+    for (let i = 0; i < n; i++) {
+      Q[i] = new Array(n);
+      for (let j = 0; j < n; j++) {
+        if (i === j) {
+          Q[i][j] = 0;
+          continue;
+        }
+        const dy0 = Y[i][0] - Y[j][0];
+        const dy1 = Y[i][1] - Y[j][1];
+        const dist = dy0 * dy0 + dy1 * dy1;
+        Q[i][j] = 1 / (1 + dist);
+        sumQ += Q[i][j];
+      }
+    }
+
+    if (sumQ === 0) sumQ = 1e-10;
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        Q[i][j] = Math.max(Q[i][j] / sumQ, 1e-100);
+      }
+    }
+
+    // Compute gradient
+    const grad = new Array(n);
+    for (let i = 0; i < n; i++) {
+      grad[i] = [0, 0];
+      for (let j = 0; j < n; j++) {
+        if (i === j) continue;
+        const dy0 = Y[i][0] - Y[j][0];
+        const dy1 = Y[i][1] - Y[j][1];
+        const mult = (P[i][j] - Q[i][j]) * Q[i][j] * sumQ;
+        grad[i][0] += mult * dy0;
+        grad[i][1] += mult * dy1;
+      }
+      grad[i][0] *= 4;
+      grad[i][1] *= 4;
+    }
+
+    // Update solution
+    for (let i = 0; i < n; i++) {
+      for (let d = 0; d < 2; d++) {
+        const gd = grad[i][d];
+        const iy = iY[i][d];
+
+        gains[i][d] = (Math.sign(gd) === Math.sign(iy))
+          ? gains[i][d] * 0.8
+          : gains[i][d] + 0.2;
+
+        if (gains[i][d] < 0.01) gains[i][d] = 0.01;
+
+        const momentum = iter < 250 ? 0.5 : 0.8;
+        iY[i][d] = momentum * iy - learningRate * gains[i][d] * gd;
+        Y[i][d] += iY[i][d];
+      }
+    }
+
+    // Zero-mean
+    if (iter % 10 === 0) {
+      let meanX = 0, meanY = 0;
+      for (let i = 0; i < n; i++) {
+        meanX += Y[i][0];
+        meanY += Y[i][1];
+      }
+      meanX /= n;
+      meanY /= n;
+      for (let i = 0; i < n; i++) {
+        Y[i][0] -= meanX;
+        Y[i][1] -= meanY;
+      }
+    }
+  }
+
+  const projection = Y.map(point => ({
+    x: point[0],
+    y: point[1]
+  }));
+
+  console.log(`t-SNE: Completed ${iterations} iterations`);
+
+  return {
+    projection,
+    validIndices,
     features
   };
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadFraminghamData, getFeatureMetadata, computePCA } from './utils/dataLoader';
+import { loadFraminghamData, getFeatureMetadata, computePCA, computeTSNE } from './utils/dataLoader';
 import FeatureDistribution from './components/FeatureDistribution';
 import PCAView from './components/PCAView';
 import SubgroupSummary from './components/SubgroupSummary';
@@ -15,6 +15,8 @@ export default function App() {
   const [selectedIndices, setSelectedIndices] = useState([]);
   const [pinnedIndices, setPinnedIndices] = useState([]);
   const [colorFeature, setColorFeature] = useState('TenYearCHD');
+  const [clusteringMethod, setClusteringMethod] = useState('PCA');
+  const [isComputing, setIsComputing] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -23,7 +25,7 @@ export default function App() {
       setData(loadedData);
       setMetadata(meta);
 
-      // Use only continuous features for PCA (no categorical variables)
+      // Use only continuous features for clustering (no categorical variables)
       const continuousFeatures = ['age', 'cigsPerDay', 'totChol', 'sysBP', 'diaBP',
                                   'BMI', 'heartRate', 'glucose'];
       const pcaResult = computePCA(loadedData, continuousFeatures);
@@ -36,6 +38,42 @@ export default function App() {
     }
     loadData();
   }, []);
+
+  // Recompute projection when clustering method changes
+  useEffect(() => {
+    if (!data) return;
+
+    const computeProjection = async () => {
+      setIsComputing(true);
+      setSelectedIndices([]); // Clear selection when switching methods
+
+      const continuousFeatures = ['age', 'cigsPerDay', 'totChol', 'sysBP', 'diaBP',
+                                  'BMI', 'heartRate', 'glucose'];
+
+      // Use setTimeout to allow loading indicator to appear
+      setTimeout(() => {
+        if (clusteringMethod === 'PCA') {
+          const pcaResult = computePCA(data, continuousFeatures);
+          setProjection(pcaResult.projection);
+          setValidIndices(pcaResult.validIndices);
+          setPcaInfo({
+            varExplained: pcaResult.varExplained,
+            features: pcaResult.features
+          });
+        } else if (clusteringMethod === 't-SNE') {
+          const tsneResult = computeTSNE(data, continuousFeatures);
+          setProjection(tsneResult.projection);
+          setValidIndices(tsneResult.validIndices);
+          setPcaInfo({
+            features: tsneResult.features
+          });
+        }
+        setIsComputing(false);
+      }, 50);
+    };
+
+    computeProjection();
+  }, [clusteringMethod, data]);
 
   const handleBrush = (indices) => {
     setSelectedIndices(indices);
@@ -85,7 +123,14 @@ export default function App() {
 
       <div className="controls">
         <div className="control-group">
-          <label>Color PCA by:</label>
+          <label>Clustering Method:</label>
+          <select value={clusteringMethod} onChange={(e) => setClusteringMethod(e.target.value)} disabled={isComputing}>
+            <option value="PCA">PCA</option>
+            <option value="t-SNE">t-SNE</option>
+          </select>
+        </div>
+        <div className="control-group">
+          <label>Color by:</label>
           <select value={colorFeature} onChange={(e) => setColorFeature(e.target.value)}>
             {features.map(f => (
               <option key={f} value={f}>{metadata[f].label}</option>
@@ -143,6 +188,8 @@ export default function App() {
             selectedIndices={selectedIndices}
             onBrush={handleBrush}
             pcaInfo={pcaInfo}
+            clusteringMethod={clusteringMethod}
+            isComputing={isComputing}
           />
         </div>
 

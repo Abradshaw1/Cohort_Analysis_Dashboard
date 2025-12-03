@@ -9,12 +9,14 @@ export default function PCAView({
   metadata,
   selectedIndices,
   onBrush,
-  pcaInfo
+  pcaInfo,
+  clusteringMethod,
+  isComputing
 }) {
   const svgRef = useRef();
 
   useEffect(() => {
-    if (!projection || projection.length === 0) return;
+    if (!projection || projection.length === 0 || isComputing) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -50,9 +52,10 @@ export default function PCAView({
           .domain(meta.domain)
           .range(['#e74c3c', '#3498db', '#2ecc71', '#f39c12']);
       } else {
+        // Use a green-yellow-red color scale for continuous variables
         const values = data.map(d => d[colorFeature]).filter(v => v !== null);
-        colorScale = d3.scaleSequential(d3.interpolateViridis)
-          .domain(d3.extent(values));
+        colorScale = d3.scaleSequential(d3.interpolateRdYlGn)
+          .domain(d3.extent(values).reverse()); // Reverse so low values are red, high are green
       }
     } else {
       colorScale = () => '#4a90e2';
@@ -112,19 +115,25 @@ export default function PCAView({
       .selectAll('text')
       .style('font-size', '11px');
 
-    const pc1Label = pcaInfo?.varExplained
-      ? `PC1 (${pcaInfo.varExplained[0].toFixed(1)}% var.)`
-      : 'PC1';
-    const pc2Label = pcaInfo?.varExplained
-      ? `PC2 (${pcaInfo.varExplained[1].toFixed(1)}% var.)`
-      : 'PC2';
+    let xLabel, yLabel;
+    if (clusteringMethod === 'PCA') {
+      xLabel = pcaInfo?.varExplained
+        ? `PC1 (${pcaInfo.varExplained[0].toFixed(1)}% var.)`
+        : 'PC1';
+      yLabel = pcaInfo?.varExplained
+        ? `PC2 (${pcaInfo.varExplained[1].toFixed(1)}% var.)`
+        : 'PC2';
+    } else {
+      xLabel = 't-SNE Dimension 1';
+      yLabel = 't-SNE Dimension 2';
+    }
 
     g.append('text')
       .attr('x', innerWidth / 2)
       .attr('y', innerHeight + 35)
       .attr('text-anchor', 'middle')
       .style('font-size', '12px')
-      .text(pc1Label);
+      .text(xLabel);
 
     g.append('text')
       .attr('transform', 'rotate(-90)')
@@ -132,7 +141,7 @@ export default function PCAView({
       .attr('y', -35)
       .attr('text-anchor', 'middle')
       .style('font-size', '12px')
-      .text(pc2Label);
+      .text(yLabel);
 
     svg.append('text')
       .attr('x', width / 2)
@@ -140,7 +149,7 @@ export default function PCAView({
       .attr('text-anchor', 'middle')
       .style('font-size', '14px')
       .style('font-weight', 'bold')
-      .text('PCA Projection');
+      .text(`${clusteringMethod} Projection`);
 
     if (pcaInfo?.features) {
       const foreignObj = svg.append('foreignObject')
@@ -235,7 +244,41 @@ export default function PCAView({
       }
     }
 
-  }, [projection, validIndices, data, colorFeature, metadata, selectedIndices, onBrush, pcaInfo]);
+  }, [projection, validIndices, data, colorFeature, metadata, selectedIndices, onBrush, pcaInfo, clusteringMethod, isComputing]);
+
+  if (isComputing) {
+    return (
+      <div style={{
+        width: '500px',
+        height: '500px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '20px'
+      }}>
+        <div style={{
+          width: '50px',
+          height: '50px',
+          border: '5px solid #f3f3f3',
+          borderTop: '5px solid #3498db',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Computing {clusteringMethod} projection...
+        </div>
+        <style>
+          {`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}
+        </style>
+      </div>
+    );
+  }
 
   return <svg ref={svgRef}></svg>;
 }
