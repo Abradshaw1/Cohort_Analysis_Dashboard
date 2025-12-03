@@ -44,20 +44,20 @@ export default function PCAView({
       .domain(yExtent)
       .range([innerHeight, 0]);
 
-    let colorScale;
-    if (colorFeature && metadata[colorFeature]) {
-      const meta = metadata[colorFeature];
-      if (meta.type === 'categorical' || meta.type === 'ordinal') {
-        colorScale = d3.scaleOrdinal()
-          .domain(meta.domain)
-          .range(['#e74c3c', '#3498db', '#2ecc71', '#f39c12']);
-      } else {
-        const values = data.map(d => d[colorFeature]).filter(v => v !== null);
-        colorScale = d3.scaleSequential(d3.interpolateGreens)
-          .domain(d3.extent(values));
-      }
-    } else {
-      colorScale = () => '#2ecc71';
+    // figure out metadata and whether this feature is categorical
+    const meta = colorFeature && metadata[colorFeature]
+      ? metadata[colorFeature]
+      : null;
+
+    const isCategorical =
+      meta && (meta.type === 'categorical' || meta.type === 'ordinal');
+
+    // only build a d3 color scale for categorical features
+    let colorScale = null;
+    if (isCategorical) {
+      colorScale = d3.scaleOrdinal()
+        .domain(meta.domain)
+        .range(['#e74c3c', '#3498db', '#2ecc71', '#f39c12']);
     }
 
     const points = projection.map((p, i) => ({
@@ -77,12 +77,22 @@ export default function PCAView({
       .attr('cy', d => y(d.y))
       .attr('r', d => selectedSet.has(d.dataIndex) ? 4 : 3)
       .attr('fill', d => {
-        if (d.colorValue === 'default' || d.colorValue === null) {
+        // continuous or no color feature → all green
+        if (!isCategorical) {
           return '#2ecc71';
         }
-        return colorScale(d.colorValue);
+
+        // categorical case → use scale for valid values
+        const v = d.colorValue;
+        if (v === 'default' || v == null) {
+          return '#2ecc71';
+        }
+        return colorScale(v);
       })
-      .attr('opacity', d => selectedIndices.length === 0 ? 0.6 : (selectedSet.has(d.dataIndex) ? 1 : 0.2))
+      .attr('opacity', d =>
+        selectedIndices.length === 0 ? 0.6 :
+        (selectedSet.has(d.dataIndex) ? 1 : 0.2)
+      )
       .attr('stroke', d => selectedSet.has(d.dataIndex) ? '#000' : 'none')
       .attr('stroke-width', 1);
 
@@ -119,7 +129,8 @@ export default function PCAView({
       .selectAll('text')
       .style('font-size', '11px');
 
-    let xLabel, yLabel;
+    let xLabel;
+    let yLabel;
     if (clusteringMethod === 'PCA') {
       xLabel = pcaInfo?.varExplained
         ? `PC1 (${pcaInfo.varExplained[0].toFixed(1)}% var.)`
@@ -173,9 +184,8 @@ export default function PCAView({
         .html(`<strong>Features:</strong> ${pcaInfo.features.join(', ')}`);
     }
 
-    // Add legend for color encoding (top right, below subtitle)
-    if (colorFeature && metadata[colorFeature]) {
-      const meta = metadata[colorFeature];
+    // legend only for categorical features
+    if (colorFeature && meta && isCategorical) {
       const legendX = width - 130;
       const legendY = 85;
 
@@ -186,72 +196,44 @@ export default function PCAView({
         .style('font-weight', 'bold')
         .text(`Color: ${meta.label}`);
 
-      // Get the width of the legend title to align items with the right edge
       const titleNode = legendTitle.node();
       const titleWidth = titleNode ? titleNode.getBBox().width : 120;
 
-      if (meta.type === 'categorical' || meta.type === 'ordinal') {
-        const legend = svg.append('g')
-          .attr('transform', `translate(${legendX}, ${legendY + 8})`);
+      const legend = svg.append('g')
+        .attr('transform', `translate(${legendX}, ${legendY + 8})`);
 
-        meta.domain.forEach((value, i) => {
-          const labelText = meta.labels ? meta.labels[value] : value;
+      meta.domain.forEach((value, i) => {
+        const labelText = meta.labels ? meta.labels[value] : value;
 
-          const textElem = legend.append('text')
-            .attr('x', titleWidth)
-            .attr('y', i * 16 + 4)
-            .attr('text-anchor', 'end')
-            .style('font-size', '10px')
-            .text(labelText);
-
-          const textWidth = textElem.node().getBBox().width;
-
-          legend.append('circle')
-            .attr('cx', titleWidth - textWidth - 10)
-            .attr('cy', i * 16)
-            .attr('r', 4)
-            .attr('fill', colorScale(value));
-        });
-      } else {
-        // Continuous legend
-        const legendWidth = 120;
-        const legendHeight = 10;
-
-        const defs = svg.append('defs');
-        const gradient = defs.append('linearGradient')
-          .attr('id', 'color-gradient');
-
-        for (let i = 0; i <= 10; i++) {
-          const t = i / 10;
-          const value = colorScale.domain()[0] + t * (colorScale.domain()[1] - colorScale.domain()[0]);
-          gradient.append('stop')
-            .attr('offset', `${t * 100}%`)
-            .attr('stop-color', colorScale(value));
-        }
-
-        svg.append('rect')
-          .attr('x', legendX)
-          .attr('y', legendY + 10)
-          .attr('width', legendWidth)
-          .attr('height', legendHeight)
-          .style('fill', 'url(#color-gradient)');
-
-        svg.append('text')
-          .attr('x', legendX)
-          .attr('y', legendY + legendHeight + 22)
-          .style('font-size', '9px')
-          .text(colorScale.domain()[0].toFixed(1));
-
-        svg.append('text')
-          .attr('x', legendX + legendWidth)
-          .attr('y', legendY + legendHeight + 22)
+        const textElem = legend.append('text')
+          .attr('x', titleWidth)
+          .attr('y', i * 16 + 4)
           .attr('text-anchor', 'end')
-          .style('font-size', '9px')
-          .text(colorScale.domain()[1].toFixed(1));
-      }
+          .style('font-size', '10px')
+          .text(labelText);
+
+        const textWidth = textElem.node().getBBox().width;
+
+        legend.append('circle')
+          .attr('cx', titleWidth - textWidth - 10)
+          .attr('cy', i * 16)
+          .attr('r', 4)
+          .attr('fill', colorScale(value));
+      });
     }
 
-  }, [projection, validIndices, data, colorFeature, metadata, selectedIndices, onBrush, pcaInfo, clusteringMethod, isComputing]);
+  }, [
+    projection,
+    validIndices,
+    data,
+    colorFeature,
+    metadata,
+    selectedIndices,
+    onBrush,
+    pcaInfo,
+    clusteringMethod,
+    isComputing
+  ]);
 
   if (isComputing) {
     return (
