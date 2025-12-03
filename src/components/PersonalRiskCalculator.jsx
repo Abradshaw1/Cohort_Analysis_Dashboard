@@ -50,44 +50,38 @@ export default function PersonalRiskCalculator({ data, metadata }) {
   const calculatedRisk = useMemo(() => {
     if (!data || !ranges) return null;
 
-    const userVector = [
-      parseFloat(userInputs.age),
-      parseFloat(userInputs.cigsPerDay),
-      parseFloat(userInputs.totChol),
-      parseFloat(userInputs.sysBP),
-      parseFloat(userInputs.diaBP),
-      parseFloat(userInputs.BMI),
-      parseFloat(userInputs.heartRate),
-      parseFloat(userInputs.glucose)
-    ];
+    const continuousFeatures = ['age', 'cigsPerDay', 'totChol', 'sysBP', 'diaBP', 'BMI', 'heartRate', 'glucose'];
+    const binaryFeatures = ['male', 'currentSmoker', 'BPMeds', 'prevalentStroke', 'prevalentHyp', 'diabetes'];
 
     const distances = data.map(person => {
-      const personVector = [
-        person.age,
-        person.cigsPerDay || 0,
-        person.totChol,
-        person.sysBP,
-        person.diaBP,
-        person.BMI,
-        person.heartRate,
-        person.glucose
-      ];
+      let distanceSum = 0;
 
-      const normalizedDist = userVector.map((val, i) => {
-        const range = ranges[['age', 'cigsPerDay', 'totChol', 'sysBP', 'diaBP', 'BMI', 'heartRate', 'glucose'][i]];
-        const normalized = (val - range.min) / (range.max - range.min);
-        const personNormalized = (personVector[i] - range.min) / (range.max - range.min);
-        return Math.pow(normalized - personNormalized, 2);
-      }).reduce((sum, val) => sum + val, 0);
+      continuousFeatures.forEach(feature => {
+        const userVal = parseFloat(userInputs[feature]);
+        const personVal = person[feature] || 0;
+        const range = ranges[feature];
+
+        const normalized = (userVal - range.min) / (range.max - range.min);
+        const personNormalized = (personVal - range.min) / (range.max - range.min);
+        distanceSum += Math.pow(normalized - personNormalized, 2);
+      });
+
+      binaryFeatures.forEach(feature => {
+        const userVal = parseFloat(userInputs[feature]);
+        const personVal = person[feature] || 0;
+        if (userVal !== personVal) {
+          distanceSum += 1;
+        }
+      });
 
       return {
-        distance: Math.sqrt(normalizedDist),
+        distance: Math.sqrt(distanceSum),
         hasCHD: person.TenYearCHD === 1
       };
     });
 
     distances.sort((a, b) => a.distance - b.distance);
-    const k = 100;
+    const k = 50;
     const neighbors = distances.slice(0, k);
     const chdCount = neighbors.filter(n => n.hasCHD).length;
     const riskPercentage = (chdCount / k) * 100;
@@ -131,7 +125,7 @@ export default function PersonalRiskCalculator({ data, metadata }) {
       overflowY: 'auto'
     }}>
       <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
-        Personal Risk Calculator
+        Individual Risk Calculator
       </h3>
       <p style={{
         margin: '0 0 15px 0',
@@ -388,7 +382,7 @@ export default function PersonalRiskCalculator({ data, metadata }) {
             {calculatedRisk.toFixed(1)}%
           </div>
           <div style={{ fontSize: '11px', color: '#666', marginTop: '6px' }}>
-            Based on 100 most similar individuals in dataset
+            Based on 50 most similar individuals in dataset
           </div>
         </div>
       )}
