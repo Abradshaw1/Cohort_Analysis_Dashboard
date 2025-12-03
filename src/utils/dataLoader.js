@@ -1,4 +1,5 @@
 import { PCA } from 'ml-pca';
+import { UMAP } from 'umap-js';
 
 export async function loadFraminghamData() {
   const response = await fetch(`${import.meta.env.BASE_URL}framingham.csv`);
@@ -154,9 +155,37 @@ export function computePCA(data, features) {
   };
 }
 
-export function computeTSNE(data, features) {
-  console.log('t-SNE is temporarily disabled due to library compatibility issues');
+export function computeUMAP(data, features) {
+  console.log('Computing UMAP with features:', features);
 
-  // Fallback to PCA
-  return computePCA(data, features);
+  const { validIndices, normalized } = preprocessData(data, features);
+
+  if (normalized.length === 0) {
+    return { projection: [], validIndices: [] };
+  }
+
+  console.log(`Total rows: ${data.length}, Rows after preprocessing: ${normalized.length}`);
+
+  const umap = new UMAP({
+    nComponents: 2,
+    nEpochs: 400,
+    nNeighbors: 15,
+    minDist: 0.1,
+    spread: 1.0
+  });
+
+  const embedding = umap.fit(normalized);
+
+  const projection = embedding.map(point => ({
+    x: point[0],
+    y: point[1]
+  }));
+
+  console.log('UMAP: Completed optimization');
+
+  return {
+    projection,
+    validIndices,
+    features
+  };
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadFraminghamData, getFeatureMetadata, computePCA, computeTSNE } from './utils/dataLoader';
+import { loadFraminghamData, getFeatureMetadata, computePCA, computeUMAP } from './utils/dataLoader';
 import FeatureDistribution from './components/FeatureDistribution';
 import PCAView from './components/PCAView';
 import SubgroupSummary from './components/SubgroupSummary';
@@ -60,12 +60,12 @@ export default function App() {
             varExplained: pcaResult.varExplained,
             features: pcaResult.features
           });
-        } else if (clusteringMethod === 't-SNE') {
-          const tsneResult = computeTSNE(data, continuousFeatures);
-          setProjection(tsneResult.projection);
-          setValidIndices(tsneResult.validIndices);
+        } else if (clusteringMethod === 'UMAP') {
+          const umapResult = computeUMAP(data, continuousFeatures);
+          setProjection(umapResult.projection);
+          setValidIndices(umapResult.validIndices);
           setPcaInfo({
-            features: tsneResult.features
+            features: umapResult.features
           });
         }
         setIsComputing(false);
@@ -126,7 +126,7 @@ export default function App() {
           <label>Clustering Method:</label>
           <select value={clusteringMethod} onChange={(e) => setClusteringMethod(e.target.value)} disabled={isComputing}>
             <option value="PCA">PCA</option>
-            <option value="t-SNE" disabled>t-SNE (temporarily unavailable)</option>
+            <option value="UMAP">UMAP</option>
           </select>
         </div>
         <div className="control-group">

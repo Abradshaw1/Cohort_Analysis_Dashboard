@@ -123,9 +123,12 @@ export default function PCAView({
       yLabel = pcaInfo?.varExplained
         ? `PC2 (${pcaInfo.varExplained[1].toFixed(1)}% var.)`
         : 'PC2';
+    } else if (clusteringMethod === 'UMAP') {
+      xLabel = 'UMAP Dimension 1';
+      yLabel = 'UMAP Dimension 2';
     } else {
-      xLabel = 't-SNE Dimension 1';
-      yLabel = 't-SNE Dimension 2';
+      xLabel = 'Dimension 1';
+      yLabel = 'Dimension 2';
     }
 
     g.append('text')
