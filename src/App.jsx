@@ -126,7 +126,7 @@ export default function App() {
           <label>Clustering Method:</label>
           <select value={clusteringMethod} onChange={(e) => setClusteringMethod(e.target.value)} disabled={isComputing}>
             <option value="PCA">PCA</option>
-            <option value="t-SNE">t-SNE</option>
+            <option value="t-SNE" disabled>t-SNE (temporarily unavailable)</option>
           </select>
         </div>
         <div className="control-group">
