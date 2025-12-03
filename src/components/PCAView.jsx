@@ -57,7 +57,7 @@ export default function PCAView({
           .domain(d3.extent(values));
       }
     } else {
-      colorScale = () => '#4a90e2';
+      colorScale = () => '#2ecc71';
     }
 
     const points = projection.map((p, i) => ({
@@ -76,7 +76,7 @@ export default function PCAView({
       .attr('cx', d => x(d.x))
       .attr('cy', d => y(d.y))
       .attr('r', d => selectedSet.has(d.dataIndex) ? 4 : 3)
-      .attr('fill', d => d.colorValue !== null ? colorScale(d.colorValue) : '#4a90e2')
+      .attr('fill', d => d.colorValue !== null ? colorScale(d.colorValue) : '#2ecc71')
       .attr('opacity', d => selectedIndices.length === 0 ? 0.6 : (selectedSet.has(d.dataIndex) ? 1 : 0.2))
       .attr('stroke', d => selectedSet.has(d.dataIndex) ? '#000' : 'none')
       .attr('stroke-width', 1);
