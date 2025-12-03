@@ -52,10 +52,9 @@ export default function PCAView({
           .domain(meta.domain)
           .range(['#e74c3c', '#3498db', '#2ecc71', '#f39c12']);
       } else {
-        // Use a green-yellow-red color scale for continuous variables
         const values = data.map(d => d[colorFeature]).filter(v => v !== null);
-        colorScale = d3.scaleSequential(d3.interpolateRdYlGn)
-          .domain(d3.extent(values).reverse()); // Reverse so low values are red, high are green
+        colorScale = d3.scaleSequential(d3.interpolateGreens)
+          .domain(d3.extent(values));
       }
     } else {
       colorScale = () => '#4a90e2';
