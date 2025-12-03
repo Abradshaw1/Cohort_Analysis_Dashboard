@@ -242,8 +242,8 @@ export default function PCAView({
         });
       } else if (colorDomain) {
         // continuous legend with gradient
-        const gradientHeight = 80;
-        const gradientWidth = 15;
+        const gradientWidth = 80;
+        const gradientHeight = 15;
         const legend = svg.append('g')
           .attr('transform', `translate(${legendX}, ${legendY + 10})`);
 
@@ -252,8 +252,8 @@ export default function PCAView({
         const linearGradient = defs.append('linearGradient')
           .attr('id', 'legend-gradient')
           .attr('x1', '0%')
-          .attr('y1', '100%')
-          .attr('x2', '0%')
+          .attr('y1', '0%')
+          .attr('x2', '100%')
           .attr('y2', '0%');
 
         linearGradient.selectAll('stop')
@@ -276,18 +276,18 @@ export default function PCAView({
 
         // add labels
         legend.append('text')
-          .attr('x', gradientWidth + 5)
-          .attr('y', 0)
-          .attr('dy', '0.3em')
-          .style('font-size', '10px')
-          .text(Number(colorDomain[1]).toFixed(1));
-
-        legend.append('text')
-          .attr('x', gradientWidth + 5)
-          .attr('y', gradientHeight)
-          .attr('dy', '0.3em')
+          .attr('x', 0)
+          .attr('y', gradientHeight + 12)
+          .attr('text-anchor', 'start')
           .style('font-size', '10px')
           .text(Number(colorDomain[0]).toFixed(1));
+
+        legend.append('text')
+          .attr('x', gradientWidth)
+          .attr('y', gradientHeight + 12)
+          .attr('text-anchor', 'end')
+          .style('font-size', '10px')
+          .text(Number(colorDomain[1]).toFixed(1));
       }
     }
 
