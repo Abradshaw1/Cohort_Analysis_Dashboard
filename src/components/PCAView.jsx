@@ -64,7 +64,7 @@ export default function PCAView({
       x: p.x,
       y: p.y,
       dataIndex: validIndices[i],
-      colorValue: colorFeature ? data[validIndices[i]][colorFeature] : null
+      colorValue: colorFeature ? data[validIndices[i]][colorFeature] : 'default'
     }));
 
     const selectedSet = new Set(selectedIndices);
@@ -76,7 +76,12 @@ export default function PCAView({
       .attr('cx', d => x(d.x))
       .attr('cy', d => y(d.y))
       .attr('r', d => selectedSet.has(d.dataIndex) ? 4 : 3)
-      .attr('fill', d => d.colorValue !== null ? colorScale(d.colorValue) : '#2ecc71')
+      .attr('fill', d => {
+        if (d.colorValue === 'default' || d.colorValue === null) {
+          return '#2ecc71';
+        }
+        return colorScale(d.colorValue);
+      })
       .attr('opacity', d => selectedIndices.length === 0 ? 0.6 : (selectedSet.has(d.dataIndex) ? 1 : 0.2))
       .attr('stroke', d => selectedSet.has(d.dataIndex) ? '#000' : 'none')
       .attr('stroke-width', 1);
