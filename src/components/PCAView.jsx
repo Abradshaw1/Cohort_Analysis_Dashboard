@@ -63,12 +63,15 @@ export default function PCAView({
       // continuous feature - use green gradient
       const values = data
         .map(d => d[colorFeature])
-        .filter(v => v != null && !Number.isNaN(v));
+        .filter(v => v != null && !Number.isNaN(Number(v)) && Number.isFinite(Number(v)));
 
       if (values.length > 0) {
         colorDomain = d3.extent(values);
-        colorScale = d3.scaleSequential(d3.interpolateGreens)
-          .domain(colorDomain);
+        if (colorDomain[0] != null && colorDomain[1] != null &&
+            Number.isFinite(colorDomain[0]) && Number.isFinite(colorDomain[1])) {
+          colorScale = d3.scaleSequential(d3.interpolateGreens)
+            .domain(colorDomain);
+        }
       }
     }
 
@@ -277,14 +280,14 @@ export default function PCAView({
           .attr('y', 0)
           .attr('dy', '0.3em')
           .style('font-size', '10px')
-          .text(colorDomain[1].toFixed(1));
+          .text(Number(colorDomain[1]).toFixed(1));
 
         legend.append('text')
           .attr('x', gradientWidth + 5)
           .attr('y', gradientHeight)
           .attr('dy', '0.3em')
           .style('font-size', '10px')
-          .text(colorDomain[0].toFixed(1));
+          .text(Number(colorDomain[0]).toFixed(1));
       }
     }
 
